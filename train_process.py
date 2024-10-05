@@ -18,8 +18,8 @@ test_batch = 1000
 loss_fn = nn.CrossEntropyLoss()
 optim = torch.optim.Adam(model.parameters(), lr=0.01)
 # 数据集
-trainset = datasets.MNIST(train=True, transform=transforms.ToTensor(), download=True)
-testset = datasets.MNIST(train=False, transform=transforms.ToTensor(), download=True)
+trainset = datasets.MNIST(root="./", train=True, transform=transforms.ToTensor(), download=True)
+testset = datasets.MNIST(root="./", train=False, transform=transforms.ToTensor(), download=True)
 
 # 训练测试模块
 dl = DLModule(model=model, loss_fn=loss_fn, optim=optim, train_set=trainset, 
