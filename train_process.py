@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import photontorch as pt
+import torch.utils.data
 from torchvision import datasets
 import torchvision.transforms as transforms
 from deep_learning_utils import DLModule
@@ -20,6 +21,8 @@ optim = torch.optim.Adam(model.parameters(), lr=0.01)
 # 数据集
 trainset = datasets.MNIST(root="./", train=True, transform=transforms.ToTensor(), download=True)
 testset = datasets.MNIST(root="./", train=False, transform=transforms.ToTensor(), download=True)
+# subtrainset = torch.utils.data.Subset(trainset, range(100))
+# subtestset = torch.utils.data.Subset(testset, range(10))
 
 # 训练测试模块
 dl = DLModule(model=model, loss_fn=loss_fn, optim=optim, train_set=trainset, 

@@ -57,7 +57,7 @@ class DLModule(nn.Module):
             accurate_num = (predict.argmax(1) == label).sum().item()
             total_test_accurate_num += accurate_num
         self.accuracy = total_test_accurate_num/self.testset_size
-        print(f"Test loss: {total_test_loss:.6f}")
+        print(f"Total test loss: {total_test_loss:.6f}")
         print(f"Test accuracy : {total_test_accurate_num / self.testset_size}")
         self.writer.add_scalar("test_loss", total_test_loss, self.epoch)
         self.writer.add_scalar("test_accuracy", self.accuracy, self.epoch)
