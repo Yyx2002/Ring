@@ -26,5 +26,5 @@ class Model(nn.Module):
         x = torch.permute(x, (-1, 0, 1))
         x = torch.sum(x, dim = 1)
         x = torch.chunk(x, 2, dim = 1)
-        x = x[0] - x[1] # 进行查分探测
+        x = x[0] - x[1] # 进行差分探测
         return x
