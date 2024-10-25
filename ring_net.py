@@ -10,8 +10,8 @@ class Ring(pt.Network):
         self.wg_length = wavelength / (self.neff * 2)# 单个直波导的长度
         self.loss = loss
         self.phase = phase
-        self.add_component("dc1", pt.DirectionalCoupler(coupling=0.05, trainable=False))
-        self.add_component("dc2", pt.DirectionalCoupler(coupling=0.05, trainable=False))
+        self.add_component("dc1", pt.DirectionalCoupler(coupling=0.04, trainable=False))
+        self.add_component("dc2", pt.DirectionalCoupler(coupling=0.04, trainable=False))
         self.add_component("wg1", pt.Waveguide(length = self.wg_length, loss=self.loss, phase = 0, trainable = False, neff=self.neff))
         self.add_component("wg2", pt.Waveguide(length = self.wg_length, loss=self.loss, phase = self.phase, trainable = True, neff=self.neff)) 
         self.add_component("source", pt.Source())
@@ -69,11 +69,11 @@ class RingNet(pt.Network):
         for i in range(M):
             self.add_component(f"source{i}",pt.Source())
             self.link(f"source{i}:0", f"{i}:ring")
-        if mode == 0 :
+        if mode == 0 :# 仅drop
             for i in range(M):
                 self.add_component(f"detector{i}", pt.Detector())
                 self.link(f"ring:{M+i}", f"0:detector{i}")
-        if mode == 1 :
+        if mode == 1 :# drop和through
             for i in range(2*M):
                 self.add_component(f"detector{i}", pt.Detector())
                 self.link(f"ring:{M+i}", f"0:detector{i}")
