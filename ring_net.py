@@ -7,19 +7,20 @@ class Ring(pt.Network):
         super(Ring, self).__init__()
         self.neff = neff
         self.wavelength = wavelength
-        self.wg_length = wavelength / (self.neff * 2)# 单个直波导的长度
+        self.m = 30
+        self.wg_length = self.m * wavelength / (self.neff * 2)# 单个直波导的长度
         self.loss = loss
         self.phase = phase
-        self.add_component("dc1", pt.DirectionalCoupler(coupling=0.04, trainable=False))
-        self.add_component("dc2", pt.DirectionalCoupler(coupling=0.04, trainable=False))
+        self.add_component("dc1", pt.DirectionalCoupler(coupling=0.05, trainable=False))
+        self.add_component("dc2", pt.DirectionalCoupler(coupling=0.05, trainable=False))
         self.add_component("wg1", pt.Waveguide(length = self.wg_length, loss=self.loss, phase = 0, trainable = False, neff=self.neff))
         self.add_component("wg2", pt.Waveguide(length = self.wg_length, loss=self.loss, phase = self.phase, trainable = True, neff=self.neff)) 
         self.add_component("source", pt.Source())
         self.add_component("detector1", pt.Detector())
         self.add_component("detector2", pt.Detector())
         self.add_component("term", pt.Term())
-        self.link(0, "0:dc1:3", "0:wg1:1", "0:dc2:1", "1:wg2:0", "2:dc1:1", 1)
-        self.link(3, "3:dc2:2", 2)
+        self.link(0, "0:dc1:3", "0:wg1:1", "1:dc2:0", "1:wg2:0", "2:dc1:1", 1)
+        self.link(3, "2:dc2:3", 2)
 
 class RingLink(pt.Network):
     def __init__(self, wavelength, phase, neff):

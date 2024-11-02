@@ -22,9 +22,9 @@ class Model(nn.Module):
         x = torch.squeeze(x, dim = -1)
         x = torch.stack([x] * 10, dim = 0).rename('s', 'w', 'b')
         x = self.layer_ol(source = x)[-1, :, :, :]
-        print(torch.max(x, 0, keepdim=True))
-        print(torch.max(x, 1, keepdim=True))
-        print(torch.max(x, 2, keepdim=True))
+        # print(torch.max(x, 0, keepdim=True))
+        # print(torch.max(x, 1, keepdim=True))
+        # print(torch.max(x, 2, keepdim=True))
         x = torch.sum(x, dim = 0) # 在波长维度求和
         x = torch.transpose(x, 0, 1)
         # x = torch.chunk(x, 2, dim = -1)
