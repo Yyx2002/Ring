@@ -6,10 +6,10 @@ class Model(nn.Module):
     def __init__(self):
         super(Model, self).__init__()
         self.layer_flat = torch.nn.Flatten()# output: (batch, 1 * 28 * 28)
-        self.layer_el = torch.nn.Linear(1 * 28 * 28, 8)# output: (batch, 64)
-        self.layer_relu = torch.nn.ReLU()
-        self.layer_ol = RingNet(10, 8, mode=0, wavelength_list=[1.3e-6, 1.35e-6, 1.4e-6, 1.45e-6, 1.5e-6, 1.55e-6, 1.6e-6, 1.65e-6])
-    
+        self.layer_el = torch.nn.Linear(1 * 28 * 28, 4)# output: (batch, 64)
+        self.layer_relu = torch.nn.GELU()
+        self.layer_ol = RingNet(10, 4, mode="t", wavelength_list=[1.53e-6, 1.54e-6, 1.55e-6, 1.56e-6])
+
     def forward(self, x):
         x = self.layer_flat(x)
         x = self.layer_el(x)
@@ -17,7 +17,7 @@ class Model(nn.Module):
         """
         将8个数据用8个波长承载，复用之后输入从同一个光源端口输入
         """
-        x = torch.chunk(x, 8, dim = -1)
+        x = torch.chunk(x, 4, dim = -1)
         x = torch.stack(x, dim = 0)
         x = torch.squeeze(x, dim = -1)
         x = torch.stack([x] * 10, dim = 0).rename('s', 'w', 'b')

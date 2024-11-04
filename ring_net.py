@@ -3,6 +3,7 @@ import photontorch as pt
 import numpy as np
 
 class Ring(pt.Network):
+    # 单个微环结构，有三个端口：input、drop、through
     def __init__(self, wavelength=1.55e-6, phase=0, neff=3.4, loss=0):
         super(Ring, self).__init__()
         self.neff = neff
@@ -11,74 +12,95 @@ class Ring(pt.Network):
         self.wg_length = self.m * wavelength / (self.neff * 2)# 单个直波导的长度
         self.loss = loss
         self.phase = phase
-        self.add_component("dc1", pt.DirectionalCoupler(coupling=0.05, trainable=False))
-        self.add_component("dc2", pt.DirectionalCoupler(coupling=0.05, trainable=False))
+        self.add_component("dc1", pt.DirectionalCoupler(coupling=0.03, trainable=False))
+        self.add_component("dc2", pt.DirectionalCoupler(coupling=0.03, trainable=False))
         self.add_component("wg1", pt.Waveguide(length = self.wg_length, loss=self.loss, phase = 0, trainable = False, neff=self.neff))
         self.add_component("wg2", pt.Waveguide(length = self.wg_length, loss=self.loss, phase = self.phase, trainable = True, neff=self.neff)) 
         self.add_component("source", pt.Source())
         self.add_component("detector1", pt.Detector())
         self.add_component("detector2", pt.Detector())
         self.add_component("term", pt.Term())
-        self.link(0, "0:dc1:3", "0:wg1:1", "1:dc2:0", "1:wg2:0", "2:dc1:1", 1)
-        self.link(3, "2:dc2:3", 2)
+        self.link(0, "0:dc1:3", "0:wg1:1", "0:dc2:1", "1:wg2:0", "2:dc1:1", 1)
+        self.link(2, "3:dc2:2", "0:term")
 
-class RingLink(pt.Network):
-    def __init__(self, wavelength, phase, neff):
-        # wavelength 表示构建微环的谐振波长
-        super(RingLink, self).__init__()
-        self.add_component("source", pt.Source())
-        self.add_component("detector1", pt.Detector())
-        self.add_component("detector2", pt.Detector())
-        self.add_component("term", pt.Term())
-        self.ring = Ring(wavelength=wavelength, phase=phase, neff=neff, loss=0)
-
-        self.link("source:0", "0:ring:1", "0:detector1")
-        self.link("detector2:0", "3:ring:2", "0:term")
+# class RingLink(pt.Network):
+#     def __init__(self, wavelength, phase, neff):
+#         # wavelength 表示构建微环的谐振波长
+#         super(RingLink, self).__init__()
+#         self.add_component("source", pt.Source())
+#         self.add_component("detector1", pt.Detector())
+#         self.add_component("detector2", pt.Detector())
+#         self.add_component("term", pt.Term())
+#         self.ring = Ring(wavelength=wavelength, phase=phase, neff=neff, loss=0)
+#         self.link("source:0", "0:ring:1", "0:detector1")
+#         self.link("detector2:0", "3:ring:2", "0:term")
 
 class Ring_MN_Array(pt.Network):
     def __init__(self, M, N, mode, wavelength_list, phase, neff, loss):
         super(Ring_MN_Array, self).__init__()
         # 构建相应个数M✖️N的微环
         for j in range(N):
-            for wl in wavelength_list:
-                for i in range(M):
-                    self.add_component(f"ring{i}_{j}", Ring(wavelength=wl))
-        if mode == 0 : # 仅探测drop端
             for i in range(M):
-                self.add_component(f"term{i}_1", pt.Term())
-                self.add_component(f"term{i}_2", pt.Term())
-                self.link(i, f"0:ring{i}_0:3", M+i)
-                self.link(f"term{i}_1:0", f"1:ring{i}_{N-1}:2", f"0:term{i}_2")
-                for j in range(N-1):
-                    self.link(f"ring{i}_{j}:1", f"0:ring{i}_{j+1}")
-                    self.link(f"ring{i}_{j}:2", f"3:ring{i}_{j+1}")
-        if mode == 1 : # 探测drop&through端 
+                self.add_component(f"ring{i}_{j}", Ring(wavelength=wavelength_list[j]))
+    
+        if mode == "d" : # 仅探测drop端
             for i in range(M):
                 self.add_component(f"term{i}", pt.Term())
-                self.link(i, f"0:ring{i}_0:3", M+i)
-                self.link(2*M+i, f"1:ring{i}_{N-1}:2", f"0:term{i}")
+                self.link(f"term{i}:0", f"1:ring{i}_{N-1}") # 将Through端连到Term
+                self.link(i, f"0:ring{i}_0")
+                for j in range(N):
+                    self.link((j+1)*M+i, f"2:ring{i}_{j}")
+                for j in range(N-1):
+                    self.link(f"ring{i}_{j}:1", f"0:ring{i}_{j+1}") # 将各个微环连接
+
+        if mode == "t" : # 仅探测through端
+            for i in range(M):
+                self.link(i, f"0:ring{i}_0")
+                for j in range(N):
+                    self.add_component(f"term{i}_{j}", pt.Term())
+                    self.link(f"term{i}_{j}:0", f"2:ring{i}_{j}") # 将Drop端连到Term
+                    self.link(M+i, f"1:ring{i}_{N-1}")
+                for j in range(N-1):
+                    self.link(f"ring{i}_{j}:1", f"0:ring{i}_{j+1}") # 将各个微环连接
+
+        if mode == "dt" : # 探测drop&through端 
+            for i in range(M):
+                self.link(i, f"0:ring{i}_0")
+                self.link(M+i, f"1:ring{i}_{N-1}") 
+                for j in range(N):
+                    self.link((j+2)*M+i, f"2:ring{i}_{j}")
                 for j in range(N-1):
                     self.link(f"ring{i}_{j}:1", f"0:ring{i}_{j+1}")
-                    self.link(f"ring{i}_{j}:2", f"3:ring{i}_{j+1}")
 
 class RingNet(pt.Network):
-    def __init__(self, M, N, mode=1, wavelength_list=1e-6 * np.linspace(1.3, 1.65, 8), phase=0, neff=3.4, loss=0):
+    def __init__(self, M, N, mode="t", wavelength_list=1e-6 * np.linspace(1.3, 1.65, 8), phase=0, neff=3.4, loss=0):
         super(RingNet, self).__init__()
         self.wavelength_list = wavelength_list
-        self.ring = Ring_MN_Array(M, N, mode, self.wavelength_list, phase, neff, loss)
+        self.ring_array = Ring_MN_Array(M, N, mode, self.wavelength_list, phase, neff, loss)
         # 添加光源
         for i in range(M):
             self.add_component(f"source{i}",pt.Source())
-            self.link(f"source{i}:0", f"{i}:ring")
-        if mode == 0 :# 仅drop
+            self.link(f"source{i}:0", f"{i}:ring_array")
+        
+        if mode == "d" :# 仅drop
+            for i in range(M):
+                for j in range(N):
+                    self.add_component(f"detector{i}_{j}", pt.Detector())
+                    self.link(f"ring_array:{(j+1)*M+i}", f"0:detector{i}_{j}")
+
+        if mode == "t":
+            for i in range(M):
+                self.add_component(f"detector{i}", pt.Detector())
+                self.link(f"ring_array:{M+i}", f"0:detector{i}")
+
+        if mode == "dt" :# drop和through
             for i in range(M):
                 self.add_component(f"detector{i}", pt.Detector())
                 self.link(f"ring:{M+i}", f"0:detector{i}")
-        if mode == 1 :# drop和through
-            for i in range(2*M):
-                self.add_component(f"detector{i}", pt.Detector())
-                self.link(f"ring:{M+i}", f"0:detector{i}")
+                for j in range(N):
+                    self.add_component(f"detector{i}_{j}", pt.Detector())
+                    self.link(f"ring_array:{(j+2)*M+i}", f"0:detector{i}_{j}")
 
 if __name__ == "__main__":
     wavelength_list = [1.3e-6, 1.35e-6, 1.4e-6, 1.45e-6, 1.5e-6, 1.55e-6, 1.6e-6, 1.65e-6]
-    net = RingNet(10, 8, mode=1, wavelength_list=wavelength_list, phase=0, neff=3.4, loss=0)
+    net = RingNet(4, 4, mode=1, wavelength_list=wavelength_list, phase=0, neff=3.4, loss=0)
